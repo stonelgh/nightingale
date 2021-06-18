@@ -72,9 +72,9 @@ func main() {
 						items := getTransferItems(endpoint, metric)
 						//log.Println(items[0])
 						start := time.Now().UnixNano()
-						err := cli.Push(items)
+						cli.Push2Queue(items)
 						if err != nil {
-							fmt.Println("err:", err)
+							// fmt.Println("err:", err)
 						} else {
 							//fmt.Println("resp:", resp)
 						}
