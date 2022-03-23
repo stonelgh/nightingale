@@ -27,7 +27,8 @@ var aggrs = aggr.New()
 func init() {
 	go func() {
 		for {
-			time.Sleep(time.Duration(aggrs.MinStep()) * time.Second)
+			tmo := time.Duration(aggrs.MinStep()) * time.Second
+			time.Sleep(tmo)
 			metrics := aggrs.Collect()
 			logger.Infof("aggrs collected %v metrics", len(metrics))
 			if len(metrics) == 0 {
@@ -39,7 +40,7 @@ func init() {
 					break
 				}
 				logger.Error("failed to push aggregated metrics", err, len(metrics))
-				time.Sleep(time.Duration(aggrs.MinStep()) / 3)
+				time.Sleep(tmo / 3)
 			}
 		}
 	}()
