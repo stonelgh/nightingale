@@ -6,6 +6,7 @@ require (
 	github.com/Shopify/sarama v1.27.2
 	github.com/alouca/gologger v0.0.0-20120904114645-7d4b7291de9c // indirect
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/caio/go-tdigest v3.1.0+incompatible
 	github.com/cespare/xxhash v1.1.0
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/freedomkk-qfeng/go-fastping v0.0.0-20160109021039-d7bb493dee3e // indirect

@@ -16,10 +16,35 @@ import (
 	"github.com/didi/nightingale/v4/src/common/dataobj"
 	"github.com/didi/nightingale/v4/src/modules/agentd/cache"
 	"github.com/didi/nightingale/v4/src/modules/agentd/config"
+	"github.com/didi/nightingale/v4/src/modules/agentd/core/aggr"
 
 	"github.com/toolkits/pkg/logger"
 	"github.com/ugorji/go/codec"
 )
+
+var aggrs = aggr.New()
+
+func init() {
+	go func() {
+		for {
+			tmo := time.Duration(aggrs.MinStep()) * time.Second
+			time.Sleep(tmo)
+			metrics := aggrs.Collect()
+			logger.Infof("aggrs collected %v metrics", len(metrics))
+			if len(metrics) == 0 {
+				continue
+			}
+			for i := 0; i < 3; i++ {
+				err := Push(metrics)
+				if err == nil {
+					break
+				}
+				logger.Error("failed to push aggregated metrics", err, len(metrics))
+				time.Sleep(tmo / 3)
+			}
+		}
+	}()
+}
 
 func Push(metricItems []*dataobj.MetricValue) error {
 	var err error
@@ -55,11 +80,20 @@ func Push(metricItems []*dataobj.MetricValue) error {
 		if item.Endpoint == "" {
 			item.Endpoint = config.Endpoint
 		}
+		typ, needAggr := item.CounterType, aggr.ValidAggr(item.CounterType)
+		if needAggr {
+			item.CounterType = ""
+		}
 		err = item.CheckValidity(now)
 		if err != nil {
 			msg := fmt.Errorf("metric:%v err:%v", item, err)
 			logger.Warning(msg)
 			// 如果数据有问题，直接跳过吧，比如mymon采集的到的数据，其实只有一个有问题，剩下的都没问题
+			continue
+		}
+		if needAggr {
+			item.CounterType = typ
+			aggrs.Put(item)
 			continue
 		}
 		if item.CounterType == dataobj.COUNTER {
@@ -76,6 +110,9 @@ func Push(metricItems []*dataobj.MetricValue) error {
 		}
 		logger.Debugf("push item: %+v", item)
 		items = append(items, item)
+	}
+	if len(items) == 0 {
+		return nil
 	}
 
 	addrs := address.GetRPCAddresses("server")
